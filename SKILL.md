@@ -1,192 +1,116 @@
 ---
 name: "tushare-complete"
-description: "Tushare Pro完整接口库，包含266个数据接口。当用户需要获取任何A股、港股、美股、基金、期货、债券、宏观经济数据时使用。"
+description: "Tushare Pro完整接口库（266个API），用于获取A股/港股/美股行情、财务报表、资金流向、基金净值、期货期权、债券、宏观经济指标（GDP/CPI/PMI/Shibor）。Use when fetching Chinese financial market data, stock prices, financial statements, fund NAV, futures, bonds, or macro indicators via Tushare."
 ---
 
 # Tushare Complete - 完整接口库
 
-Tushare Pro最完整的数据接口库，包含266个数据接口，覆盖A股、港股、美股、基金、期货、债券、宏观经济等所有领域。
+通过Tushare Pro API获取A股、港股、美股、基金、期货、债券、宏观经济等金融数据。覆盖266个接口，详见 [reference/](reference/README.md)。
 
-## 适用场景
+## Workflow
 
-- 需要获取任何金融市场数据
-- 量化投资研究
-- 财务分析
-- 行业研究
-- 宏观经济分析
-- 资金流向分析
-- 两融数据分析
-
-## 接口分类索引
-
-### 一、股票数据 (14个)
-
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| 股票列表 | pro.stock_basic() | 获取所有股票基本信息 |
-| 每日股本（盘前） | pro.daily_basic() | 每日股本变动 |
-| 交易日历 | pro.trade_calendar() | 交易日历查询 |
-| ST股票列表 | pro.st_stock_list() | ST股票列表 |
-| 沪深港通股票列表 | pro.hs_const() | 沪深港通成分股 |
-
-### 二、行情数据 (23个)
-
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| 历史日线 | pro.daily() | 日线行情数据 |
-| 实时日线 | pro.daily_now() | 实时日线 |
-| 历史分钟 | pro.stk_mins() | 分钟线数据 |
-| 周线行情 | pro.weekly() | 周线数据 |
-| 月线行情 | pro.monthly() | 月线数据 |
-
-### 三、财务数据 (10个)
-
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| 利润表 | pro.income() | 营业收入、净利润 |
-| **资产负债表** | pro.balancesheet() | **在建工程、总资产** |
-| **现金流量表** | pro.cashflow() | **资本开支、现金流** |
-| 财务指标数据 | pro.fina_indicator() | ROE、ROA等 |
-
-**重要字段说明**：
-
-**资产负债表 (balancesheet)**：
-- `cip` - 在建工程（重要！）
-- `fix_assets` - 固定资产
-- `total_assets` - 资产总计
-
-**现金流量表 (cashflow)**：
-- `c_pay_acq_const_fiolta` - 购建固定资产、无形资产和其他长期资产支付的现金（资本开支）
-- `n_cashflow_act` - 经营活动现金流净额
-
-### 四、宏观经济 (28个)
-
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| Shibor利率 | pro.shibor() | Shibor利率 |
-| LPR贷款基础利率 | pro.lpr() | LPR利率 |
-| 国内生产总值（GDP） | pro.gdp() | GDP数据 |
-| 居民消费价格指数（CPI） | pro.cpi() | CPI数据 |
-| 工业生产者出厂价格指数（PPI） | pro.ppi() | PPI数据 |
-| 货币供应量 | pro.m2() | M2数据 |
-| 采购经理指数（PMI） | pro.pmi() | PMI数据 |
-
-## 快速开始
-
-### Token配置
+### 1. Initialize Connection
 
 ```python
 import tushare as ts
 pro = ts.pro_api('your_token_here')
 ```
 
-### 常用接口示例
+> **Token**: Set via `ts.set_token('your_token')` or environment variable `TUSHARE_TOKEN`. Get a token at https://tushare.pro/register
 
-#### 获取股票列表
+### 2. Fetch Data
+
+**Stock prices:**
 ```python
-df = pro.stock_basic(exchange='', list_status='L',
-                  fields='ts_code,symbol,name,area,industry,list_date')
+# Single stock daily history
+df = pro.daily(ts_code='000001.SZ', start_date='20240101', end_date='20241231')
+
+# Multiple stocks
+df = pro.daily(ts_code='000001.SZ,600000.SH', start_date='20240101', end_date='20241231')
+
+# All stocks for one day
+df = pro.daily(trade_date='20241231')
 ```
 
-#### 获取日线行情
+**Financial statements:**
 ```python
-df = pro.daily(ts_code='000001.SZ',
-             start_date='20240101',
-             end_date='20241231')
+# Balance sheet (includes cip=在建工程, fix_assets=固定资产)
+df = pro.balancesheet(ts_code='600000.SH', start_date='20240101', end_date='20241231')
+
+# Cash flow (c_pay_acq_const_fiolta=资本开支, n_cashflow_act=经营现金流)
+df = pro.cashflow(ts_code='600000.SH', start_date='20240101', end_date='20241231')
+
+# Income statement
+df = pro.income(ts_code='600000.SH', start_date='20240101', end_date='20241231')
+
+# Financial indicators (roe, roa, net_profit_margin, debt_to_assets)
+df = pro.fina_indicator(ts_code='600000.SH', start_date='20240101', end_date='20241231')
 ```
 
-#### 获取资产负债表（含在建工程）
+**Macro indicators:**
 ```python
-df = pro.balancesheet(ts_code='600000.SH',
-                    start_date='20240101',
-                    end_date='20241231')
-cip_data = df[['ts_code', 'end_date', 'cip', 'fix_assets', 'total_assets']]
+df = pro.gdp(start_q='20220101', end_q='20221231')   # GDP
+df = pro.cpi(start_date='20220101', end_date='20221231')  # CPI
+df = pro.pmi(start_date='20220101', end_date='20221231')  # PMI
+df = pro.shibor(start_date='20240101', end_date='20240131')  # Shibor
+df = pro.lpr(start_date='20240101', end_date='20240131')   # LPR
 ```
 
-#### 获取现金流量表（含资本开支）
+**Hong Kong / US stocks:**
 ```python
-df = pro.cashflow(ts_code='600000.SH',
-                start_date='20240101',
-                end_date='20241231')
-capex_data = df[['ts_code', 'end_date', 'c_pay_acq_const_fiolta']]
+df = pro.hk_daily(ts_code='00700.HK', start_date='20240101', end_date='20241231')
+df = pro.us_daily(ts_code='AAPL', start_date='20240101', end_date='20241231')
 ```
 
-#### 获取宏观GDP
-```python
-df = pro.gdp(start_date='20220101', end_date='20221231')
-```
-
-#### 获取CPI
-```python
-df = pro.cpi(start_date='20220101', end_date='20221231')
-```
-
-#### 获取PMI
-```python
-df = pro.pmi(start_date='20220101', end_date='20221231')
-```
-
-#### 获取Shibor
-```python
-df = pro.shibor(start_date='20240101', end_date='20240131')
-```
-
-## 数据质量检验规则
-
-根据规则3，调取100组完整数据后需要检验：
+### 3. Handle Errors
 
 ```python
-def validate_data_quality(df, required_fields):
-    """
-    数据质量检验
-    
-    参数:
-        df: DataFrame
-        required_fields: 必需字段列表
-    
-    返回:
-        dict: 检验结果
-    """
-    result = {
-        'total_records': len(df),
-        'missing_values': {},
-        'zero_values': {},
-        'valid_records': 0
-    }
-    
-    for field in required_fields:
-        missing = df[field].isna().sum()
-        zeros = (df[field] == 0).sum()
-        result['missing_values'][field] = missing
-        result['zero_values'][field] = zeros
-    
-    result['valid_records'] = len(df.dropna(subset=required_fields))
-    
-    return result
+# Rate limit: max 120 calls/min (free), higher with credits
+import time
 
-# 使用示例
-required_fields = ['cip', 'c_pay_acq_const_fiolta', 'revenue', 'n_income_attr_p']
-quality = validate_data_quality(df, required_fields)
-print(quality)
+def fetch_with_retry(func, max_retries=3, **kwargs):
+    for attempt in range(max_retries):
+        try:
+            df = func(**kwargs)
+            if df is None or df.empty:
+                print(f"Empty response for {kwargs}")
+                return None
+            return df
+        except Exception as e:
+            if '每分钟' in str(e) or 'freq' in str(e):
+                time.sleep(15)
+            elif '权限' in str(e) or 'credits' in str(e):
+                print(f"Insufficient credits: {e}")
+                return None
+            else:
+                raise
+    return None
 ```
 
-## 接口调用频率限制
+**Common issues:**
+- Empty DataFrame → check `ts_code` format (e.g., `000001.SZ` not `000001`) and date range
+- 权限不足 → some interfaces require credits (基础: free, 财务: 2000, 高级: 5000). See https://tushare.pro/document/1?doc_id=108
+- Rate limiting → add `time.sleep(0.5)` between calls when batch-fetching
 
-- 免费用户：每分钟120次
-- 积分用户：根据积分等级提升
+## Interface Categories
 
-## 积分要求
+| Category | Count | Key Interfaces | Details |
+|----------|-------|----------------|---------|
+| 股票基础 | 14 | `stock_basic`, `daily_basic`, `trade_calendar` | [reference/接口文档/](reference/接口文档/) |
+| 行情数据 | 23 | `daily`, `weekly`, `monthly`, `stk_mins` | [reference/接口文档/](reference/接口文档/) |
+| 财务数据 | 10 | `income`, `balancesheet`, `cashflow`, `fina_indicator` | [reference/FIELD_REFERENCE.md](reference/FIELD_REFERENCE.md) |
+| 基金数据 | 15+ | `fund_basic`, `fund_nav`, `fund_daily` | [reference/接口文档/](reference/接口文档/) |
+| 期货期权 | 20+ | `fut_basic`, `fut_daily`, `opt_basic`, `opt_daily` | [reference/接口文档/](reference/接口文档/) |
+| 宏观经济 | 28 | `gdp`, `cpi`, `pmi`, `shibor`, `lpr` | [reference/接口文档/](reference/接口文档/) |
+| 港股美股 | 10+ | `hk_daily`, `us_daily`, `hk_basic`, `us_basic` | [reference/接口文档/](reference/接口文档/) |
 
-部分接口需要特定积分：
-- 基础数据：免费
-- 财务数据：2000积分
-- 高级数据：5000积分
+Full field reference: [reference/FIELD_REFERENCE.md](reference/FIELD_REFERENCE.md)
+Quick code examples: [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
 
-## 参考资源
+## Credits & Limits
 
-- Tushare官方文档：https://tushare.pro/document/2
-- API测试工具：https://tushare.pro/document/1
-- 积分说明：https://tushare.pro/document/1?doc_id=108
+- Free tier: 120 calls/min, basic stock data
+- 2000 credits: financial statements, fund data
+- 5000 credits: advanced data, higher frequency
 
----
-*最后更新时间：2026-02-02 10:51*
+Official docs: https://tushare.pro/document/2
